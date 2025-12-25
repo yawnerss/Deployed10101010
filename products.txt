@@ -1,33 +1,14 @@
-# Products File
-# Format: Product Name = Price
-# Lines starting with # are comments and will be ignored
-
-# Alcoholic Beverages
+gin 4x4 = 140
 gin bilog = 72
-red horse = 45
-emperador = 50
-tanduay = 35
-san miguel pale pilsen = 55
-
-# Cigarettes
-marlboro red = 150
-fortune = 120
-hope = 110
-
-# Snacks
-chippy = 15
-piattos = 20
-nova = 12
-boy bawang = 18
-
-# Drinks
-coke 1.5L = 65
-sprite 1.5L = 65
-royal = 60
-c2 green tea = 25
-gatorade = 45
-
-# Instant Noodles
-lucky me pancit canton = 18
-nissin = 20
-payless = 12
+alaska evap = 35
+chester field = 7
+marlboro crafted = 8
+marlboro = 9
+fortune = 8
+mighty = 8
+datu-puti vinegar = 10
+emperador small = 70
+emperador 1 liter = 180
+emperador long-neck = 140
+magic-sarap = 6
+magic-sarap 3 in 1 = 13
