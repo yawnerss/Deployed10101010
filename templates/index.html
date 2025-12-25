@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DESCALZO'S STORE DASHBOARD</title>
+    <title>DESCALZO STORE DASHBOARD</title>
     <style>
         * {
             margin: 0;
@@ -411,6 +411,69 @@
             background-clip: text;
         }
         
+        .cash-input-section {
+            margin-bottom: 20px;
+        }
+        
+        .cash-input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 15px;
+        }
+        
+        .cash-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+        
+        .cash-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .change-display {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .change-label {
+            color: #166534;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .change-amount {
+            color: #15803d;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .insufficient-cash {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        
         .btn-checkout {
             width: 100%;
             padding: 18px;
@@ -548,7 +611,7 @@
 <body>
     <div class="header">
         <div class="header-content">
-            <h1>🛒 DESCALZO'S STORE DASHBOARD</h1>
+            <h1>🛒 DESCALZO STORE</h1>
             <div class="header-right">
                 <span class="user-email" id="user-email"></span>
                 <button class="btn-logout" onclick="logout()">Logout</button>
@@ -611,7 +674,30 @@
                     <span>Total:</span>
                     <span class="total-amount" id="cart-total">₱0.00</span>
                 </div>
-                <button class="btn-checkout" onclick="checkout()">Generate Receipt</button>
+                
+                <div class="cash-input-section">
+                    <label class="cash-input-label" for="cash-input">💵 Customer Cash</label>
+                    <input 
+                        type="number" 
+                        id="cash-input" 
+                        class="cash-input" 
+                        placeholder="Enter amount received"
+                        step="0.01"
+                        min="0"
+                        oninput="calculateChange()"
+                    >
+                </div>
+                
+                <div class="insufficient-cash" id="insufficient-cash">
+                    ⚠️ Insufficient cash! Please enter at least ₱<span id="required-amount">0.00</span>
+                </div>
+                
+                <div class="change-display" id="change-display">
+                    <div class="change-label">💰 Change:</div>
+                    <div class="change-amount" id="change-amount">₱0.00</div>
+                </div>
+                
+                <button class="btn-checkout" id="checkout-btn" onclick="checkout()" disabled>Generate Receipt</button>
             </div>
         </div>
     </div>
@@ -624,8 +710,16 @@
             </div>
             <div id="receipt-items"></div>
             <div class="receipt-total">
-                <span>Total:</span>
+                <span>Subtotal:</span>
                 <span id="receipt-total"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                <span style="color: #6b7280;">Cash Received:</span>
+                <span style="font-weight: 600;" id="receipt-cash"></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 15px 0; font-size: 20px; font-weight: 700; color: #15803d;">
+                <span>Change:</span>
+                <span id="receipt-change"></span>
             </div>
             <button class="btn-close" onclick="closeReceipt()">Close</button>
         </div>
@@ -760,11 +854,59 @@
             
             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             document.getElementById('cart-total').textContent = `₱${total.toFixed(2)}`;
+            document.getElementById('required-amount').textContent = total.toFixed(2);
             totalSection.style.display = 'block';
+            
+            // Reset cash input when cart changes
+            document.getElementById('cash-input').value = '';
+            document.getElementById('change-display').style.display = 'none';
+            document.getElementById('insufficient-cash').style.display = 'none';
+            document.getElementById('checkout-btn').disabled = true;
+        }
+        
+        function calculateChange() {
+            const cashInput = document.getElementById('cash-input');
+            const cashAmount = parseFloat(cashInput.value) || 0;
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            const changeDisplay = document.getElementById('change-display');
+            const changeAmount = document.getElementById('change-amount');
+            const insufficientCash = document.getElementById('insufficient-cash');
+            const checkoutBtn = document.getElementById('checkout-btn');
+            
+            if (cashAmount === 0) {
+                changeDisplay.style.display = 'none';
+                insufficientCash.style.display = 'none';
+                checkoutBtn.disabled = true;
+                return;
+            }
+            
+            if (cashAmount < total) {
+                // Insufficient cash
+                changeDisplay.style.display = 'none';
+                insufficientCash.style.display = 'block';
+                checkoutBtn.disabled = true;
+            } else {
+                // Sufficient cash
+                const change = cashAmount - total;
+                changeAmount.textContent = `₱${change.toFixed(2)}`;
+                changeDisplay.style.display = 'block';
+                insufficientCash.style.display = 'none';
+                checkoutBtn.disabled = false;
+            }
         }
         
         async function checkout() {
+            const cashInput = document.getElementById('cash-input');
+            const cashAmount = parseFloat(cashInput.value) || 0;
             const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            if (cashAmount < total) {
+                alert('Please enter sufficient cash amount!');
+                return;
+            }
+            
+            const change = cashAmount - total;
             const items = cart.map(item => ({
                 name: item.name,
                 price: item.price,
@@ -778,11 +920,11 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ items, total })
+                    body: JSON.stringify({ items, total, cash: cashAmount, change })
                 });
                 
                 if (response.ok) {
-                    showReceipt(items, total);
+                    showReceipt(items, total, cashAmount, change);
                     cart = [];
                     renderCart();
                 }
@@ -791,7 +933,7 @@
             }
         }
         
-        function showReceipt(items, total) {
+        function showReceipt(items, total, cash, change) {
             const modal = document.getElementById('receipt-modal');
             const receiptItems = document.getElementById('receipt-items');
             const now = new Date();
@@ -801,6 +943,8 @@
                 timeStyle: 'short'
             });
             document.getElementById('receipt-total').textContent = `₱${total.toFixed(2)}`;
+            document.getElementById('receipt-cash').textContent = `₱${cash.toFixed(2)}`;
+            document.getElementById('receipt-change').textContent = `₱${change.toFixed(2)}`;
             
             receiptItems.innerHTML = items.map(item => `
                 <div class="receipt-item">
