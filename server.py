@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 import json
 import requests
+import threading
+import time
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
@@ -192,6 +194,93 @@ else:
 # Helper function for query parameter binding
 def get_param_placeholder():
     return '%s' if DATABASE_URL else '?'
+
+def load_products_from_file():
+    """Load products from products.txt file"""
+    products_file = 'products.txt'
+    
+    if not os.path.exists(products_file):
+        print(f"{products_file} not found, skipping auto-load")
+        return
+    
+    try:
+        with open(products_file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        conn = get_db()
+        c = conn.cursor()
+        param = get_param_placeholder()
+        
+        added_count = 0
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):  # Skip empty lines and comments
+                continue
+            
+            # Support multiple separators
+            if '==' in line:
+                parts = line.split('==')
+            elif '=' in line:
+                parts = line.split('=')
+            else:
+                parts = line.rsplit(None, 1)
+            
+            if len(parts) != 2:
+                print(f"Line {line_num}: Invalid format - '{line}'")
+                continue
+            
+            name = parts[0].strip()
+            price_str = parts[1].strip()
+            
+            try:
+                price = float(price_str)
+                
+                # Check if product already exists
+                c.execute(f"SELECT id FROM products WHERE name = {param}", (name,))
+                if c.fetchone():
+                    print(f"Product '{name}' already exists, skipping")
+                    continue
+                
+                # Insert new product
+                if DATABASE_URL:
+                    c.execute(f"INSERT INTO products (name, price) VALUES ({param}, {param})", (name, price))
+                else:
+                    c.execute(f"INSERT INTO products (name, price) VALUES ({param}, {param})", (name, price))
+                
+                added_count += 1
+                print(f"Added: {name} - ₱{price:.2f}")
+                
+            except ValueError:
+                print(f"Line {line_num}: Invalid price - '{price_str}'")
+            except Exception as e:
+                print(f"Line {line_num}: Error - {str(e)}")
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"\n✅ Loaded {added_count} products from {products_file}")
+        
+    except Exception as e:
+        print(f"Error loading products from file: {e}")
+
+def watch_products_file():
+    """Watch products.txt for changes and reload"""
+    products_file = 'products.txt'
+    last_modified = 0
+    
+    while True:
+        try:
+            if os.path.exists(products_file):
+                current_modified = os.path.getmtime(products_file)
+                if current_modified != last_modified:
+                    last_modified = current_modified
+                    print(f"\n📂 Detected changes in {products_file}, reloading...")
+                    time.sleep(1)  # Small delay to ensure file is fully written
+                    load_products_from_file()
+        except Exception as e:
+            print(f"Error watching file: {e}")
+        
+        time.sleep(5)  # Check every 5 seconds
 
 # Routes
 @app.route('/')
@@ -493,5 +582,14 @@ def check_auth():
 
 if __name__ == '__main__':
     init_db()
+    
+    # Load products from file on startup
+    load_products_from_file()
+    
+    # Start file watcher in background thread
+    watcher_thread = threading.Thread(target=watch_products_file, daemon=True)
+    watcher_thread.start()
+    print("📁 File watcher started for products.txt")
+    
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)  # debug=False for production
