@@ -31,15 +31,27 @@ def send_telegram_message(message):
 
 def format_receipt_message(receipt_data, user_email):
     """Format receipt data for Telegram message"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
     message = "🧾 <b>NEW RECEIPT</b>\n\n"
-    message += f"👤 <b>User:</b> {user_email}\n"
-    message += f"📅 <b>Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    message += "<b>📦 Items:</b>\n"
+    message += f"👤 <b>Customer:</b> {user_email}\n"
+    message += f"📅 <b>Date & Time:</b> {timestamp}\n\n"
+    message += "<b>📦 Products Purchased:</b>\n"
     
     for item in receipt_data['items']:
-        message += f"  • {item['name']} - ${item['price']:.2f}\n"
+        qty = item.get('quantity', 1)
+        price = item.get('price', 0)
+        subtotal = item.get('subtotal', price * qty)
+        name = item.get('name', 'Unknown')
+        
+        if qty > 1:
+            message += f"  • {name} (x{qty}) - ${price:.2f} each = ${subtotal:.2f}\n"
+        else:
+            message += f"  • {name} - ${price:.2f}\n"
     
-    message += f"\n💰 <b>Total:</b> ${receipt_data['total']:.2f}"
+    message += f"\n💰 <b>Total:</b> ${receipt_data['total']:.2f}\n"
+    message += f"💵 <b>Cash Received:</b> ${receipt_data.get('cash', 0):.2f}\n"
+    message += f"💸 <b>Change:</b> ${receipt_data.get('change', 0):.2f}"
     return message
 
 # Database setup - PostgreSQL for production, SQLite for local
@@ -356,6 +368,73 @@ def add_product():
     
     return jsonify({'id': product_id, 'name': name, 'price': float(price)}), 201
 
+@app.route('/api/products/bulk', methods=['POST'])
+def bulk_add_products():
+    if 'admin_authenticated' not in session:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    text_content = data.get('text', '')
+    
+    if not text_content:
+        return jsonify({'error': 'No text content provided'}), 400
+    
+    lines = text_content.strip().split('\n')
+    added_products = []
+    errors = []
+    
+    conn = get_db()
+    c = conn.cursor()
+    param = get_param_placeholder()
+    
+    for line_num, line in enumerate(lines, 1):
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Support multiple separators: ==, =, or just spaces
+        if '==' in line:
+            parts = line.split('==')
+        elif '=' in line:
+            parts = line.split('=')
+        else:
+            parts = line.rsplit(None, 1)  # Split by last space
+        
+        if len(parts) != 2:
+            errors.append(f"Line {line_num}: Invalid format - '{line}'")
+            continue
+        
+        name = parts[0].strip()
+        price_str = parts[1].strip()
+        
+        try:
+            price = float(price_str)
+            
+            if DATABASE_URL:
+                c.execute(f"INSERT INTO products (name, price) VALUES ({param}, {param}) RETURNING id", 
+                         (name, price))
+                product_id = c.fetchone()[0]
+            else:
+                c.execute(f"INSERT INTO products (name, price) VALUES ({param}, {param})", 
+                         (name, price))
+                product_id = c.lastrowid
+            
+            added_products.append({'id': product_id, 'name': name, 'price': price})
+            
+        except ValueError:
+            errors.append(f"Line {line_num}: Invalid price - '{price_str}'")
+        except Exception as e:
+            errors.append(f"Line {line_num}: Database error - {str(e)}")
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': f'Added {len(added_products)} products',
+        'added': added_products,
+        'errors': errors
+    }), 201
+
 @app.route('/api/products/<int:product_id>', methods=['DELETE'])
 def delete_product(product_id):
     if 'admin_authenticated' not in session:
@@ -378,11 +457,15 @@ def create_receipt():
     data = request.json
     items = data.get('items', [])
     total = data.get('total', 0)
+    cash = data.get('cash', 0)
+    change = data.get('change', 0)
     
     # Format and send receipt to Telegram
     receipt_data = {
         'items': items,
-        'total': total
+        'total': total,
+        'cash': cash,
+        'change': change
     }
     
     user_email = session.get('email', 'Unknown')
