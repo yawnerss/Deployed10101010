@@ -34,7 +34,7 @@ def format_receipt_message(receipt_data, user_email):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     message = "🧾 <b>NEW RECEIPT</b>\n\n"
-    message += f"👤 <b>Customer:</b> {user_email}\n"
+    message += f"👤 <b>Web User:</b> {user_email}\n"
     message += f"📅 <b>Date & Time:</b> {timestamp}\n\n"
     message += "<b>📦 Products Purchased:</b>\n"
     
@@ -495,3 +495,4 @@ if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
