@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DESCALZO'S STORE DASHBOARD</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .user-email {
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-logout {
+            padding: 10px 24px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .card h2 {
+            color: #1a1a1a;
+            margin-bottom: 25px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 14px 20px 14px 48px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 18px;
+        }
+        
+        .alphabet-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        
+        .alphabet-btn {
+            padding: 8px 14px;
+            background: #f3f4f6;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+        
+        .alphabet-btn:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .alphabet-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .products-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .products-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .products-grid::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        
+        .product-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .product-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+        
+        .product-card:hover::before {
+            opacity: 1;
+        }
+        
+        .product-card:active {
+            transform: translateY(-4px) scale(1.01);
+        }
+        
+        .product-card h3 {
+            color: white;
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .product-card .price {
+            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .product-card .price::before {
+            content: '₱';
+        }
+        
+        .no-products {
+            text-align: center;
+            color: #9ca3af;
+            padding: 60px 20px;
+            grid-column: 1 / -1;
+        }
+        
+        .no-products-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .cart-count {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .cart-items {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .cart-items::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .cart-items::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .cart-items::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .cart-item:hover {
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+        }
+        
+        .cart-item-info {
+            flex: 1;
+        }
+        
+        .cart-item-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+        
+        .cart-item-price {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .qty-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        
+        .qty-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .qty-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .qty-display {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #1a1a1a;
+        }
+        
+        .btn-remove {
+            background: #ef4444;
+            padding: 8px 14px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-remove:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        
+        .total-section {
+            border-top: 2px solid #e5e7eb;
+            padding-top: 25px;
+            margin-top: 20px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+        
+        .total-amount {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .btn-checkout {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-checkout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-checkout:active {
+            transform: translateY(0);
+        }
+        
+        .btn-checkout:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            color: #9ca3af;
+            padding: 60px 20px;
+        }
+        
+        .empty-cart-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .receipt-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .receipt-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px dashed #e5e7eb;
+        }
+        
+        .receipt-header h2 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 26px;
+        }
+        
+        .receipt-header p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .receipt-item:last-of-type {
+            border-bottom: 2px dashed #e5e7eb;
+        }
+        
+        .receipt-item-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+        
+        .receipt-item-details {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        .receipt-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 24px;
+            font-weight: 700;
+            padding-top: 20px;
+            margin-top: 20px;
+            color: #1a1a1a;
+        }
+        
+        .btn-close {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            margin-top: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .btn-close:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🛒 DESCALZO'S STORE DASHBOARD</h1>
+            <div class="header-right">
+                <span class="user-email" id="user-email"></span>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Products</h2>
+            
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" placeholder="Search products..." oninput="filterProducts()">
+            </div>
+            
+            <div class="alphabet-filter">
+                <button class="alphabet-btn active" onclick="filterByLetter('ALL')">ALL</button>
+                <button class="alphabet-btn" onclick="filterByLetter('A')">A</button>
+                <button class="alphabet-btn" onclick="filterByLetter('B')">B</button>
+                <button class="alphabet-btn" onclick="filterByLetter('C')">C</button>
+                <button class="alphabet-btn" onclick="filterByLetter('D')">D</button>
+                <button class="alphabet-btn" onclick="filterByLetter('E')">E</button>
+                <button class="alphabet-btn" onclick="filterByLetter('F')">F</button>
+                <button class="alphabet-btn" onclick="filterByLetter('G')">G</button>
+                <button class="alphabet-btn" onclick="filterByLetter('H')">H</button>
+                <button class="alphabet-btn" onclick="filterByLetter('I')">I</button>
+                <button class="alphabet-btn" onclick="filterByLetter('J')">J</button>
+                <button class="alphabet-btn" onclick="filterByLetter('K')">K</button>
+                <button class="alphabet-btn" onclick="filterByLetter('L')">L</button>
+                <button class="alphabet-btn" onclick="filterByLetter('M')">M</button>
+                <button class="alphabet-btn" onclick="filterByLetter('N')">N</button>
+                <button class="alphabet-btn" onclick="filterByLetter('O')">O</button>
+                <button class="alphabet-btn" onclick="filterByLetter('P')">P</button>
+                <button class="alphabet-btn" onclick="filterByLetter('Q')">Q</button>
+                <button class="alphabet-btn" onclick="filterByLetter('R')">R</button>
+                <button class="alphabet-btn" onclick="filterByLetter('S')">S</button>
+                <button class="alphabet-btn" onclick="filterByLetter('T')">T</button>
+                <button class="alphabet-btn" onclick="filterByLetter('U')">U</button>
+                <button class="alphabet-btn" onclick="filterByLetter('V')">V</button>
+                <button class="alphabet-btn" onclick="filterByLetter('W')">W</button>
+                <button class="alphabet-btn" onclick="filterByLetter('X')">X</button>
+                <button class="alphabet-btn" onclick="filterByLetter('Y')">Y</button>
+                <button class="alphabet-btn" onclick="filterByLetter('Z')">Z</button>
+            </div>
+            
+            <div id="products-grid" class="products-grid"></div>
+        </div>
+        
+        <div class="card">
+            <div class="cart-header">
+                <h2>Shopping Cart</h2>
+                <span class="cart-count" id="cart-count">0 items</span>
+            </div>
+            
+            <div class="cart-items" id="cart-items"></div>
+            
+            <div class="total-section" id="total-section" style="display: none;">
+                <div class="total-row">
+                    <span>Total:</span>
+                    <span class="total-amount" id="cart-total">₱0.00</span>
+                </div>
+                <button class="btn-checkout" onclick="checkout()">Generate Receipt</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="receipt-modal" id="receipt-modal">
+        <div class="receipt-content">
+            <div class="receipt-header">
+                <h2>📄 Receipt</h2>
+                <p id="receipt-date"></p>
+            </div>
+            <div id="receipt-items"></div>
+            <div class="receipt-total">
+                <span>Total:</span>
+                <span id="receipt-total"></span>
+            </div>
+            <button class="btn-close" onclick="closeReceipt()">Close</button>
+        </div>
+    </div>
+    
+    <script>
+        let products = [];
+        let cart = [];
+        let currentFilter = 'ALL';
+        let searchTerm = '';
+        
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                products = await response.json();
+                // Sort products alphabetically
+                products.sort((a, b) => a.name.localeCompare(b.name));
+                renderProducts();
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        function filterProducts() {
+            searchTerm = document.getElementById('search-input').value.toLowerCase();
+            renderProducts();
+        }
+        
+        function filterByLetter(letter) {
+            currentFilter = letter;
+            
+            // Update active button
+            document.querySelectorAll('.alphabet-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderProducts();
+        }
+        
+        function renderProducts() {
+            const grid = document.getElementById('products-grid');
+            
+            let filteredProducts = products.filter(product => {
+                const matchesSearch = product.name.toLowerCase().includes(searchTerm);
+                const matchesLetter = currentFilter === 'ALL' || 
+                                     product.name.toUpperCase().startsWith(currentFilter);
+                return matchesSearch && matchesLetter;
+            });
+            
+            if (filteredProducts.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-products">
+                        <div class="no-products-icon">🔍</div>
+                        <div>No products found</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = filteredProducts.map(product => `
+                <div class="product-card" onclick="addToCart(${product.id})">
+                    <h3>${product.name}</h3>
+                    <div class="price">${product.price.toFixed(2)}</div>
+                </div>
+            `).join('');
+        }
+        
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            
+            renderCart();
+        }
+        
+        function updateQuantity(productId, change) {
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    renderCart();
+                }
+            }
+        }
+        
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            renderCart();
+        }
+        
+        function renderCart() {
+            const cartDiv = document.getElementById('cart-items');
+            const totalSection = document.getElementById('total-section');
+            const cartCount = document.getElementById('cart-count');
+            
+            const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartCount.textContent = `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
+            
+            if (cart.length === 0) {
+                cartDiv.innerHTML = `
+                    <div class="empty-cart">
+                        <div class="empty-cart-icon">🛒</div>
+                        <div>Your cart is empty<br>Add products to get started</div>
+                    </div>
+                `;
+                totalSection.style.display = 'none';
+                return;
+            }
+            
+            cartDiv.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-price">₱${item.price.toFixed(2)} each</div>
+                    </div>
+                    <div class="cart-item-controls">
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, -1)">−</button>
+                        <div class="qty-display">${item.quantity}</div>
+                        <button class="qty-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
+                        <button class="btn-remove" onclick="removeFromCart(${item.id})">×</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cart-total').textContent = `₱${total.toFixed(2)}`;
+            totalSection.style.display = 'block';
+        }
+        
+        async function checkout() {
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const items = cart.map(item => ({
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                subtotal: item.price * item.quantity
+            }));
+            
+            try {
+                const response = await fetch('/api/receipts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ items, total })
+                });
+                
+                if (response.ok) {
+                    showReceipt(items, total);
+                    cart = [];
+                    renderCart();
+                }
+            } catch (error) {
+                console.error('Error creating receipt:', error);
+            }
+        }
+        
+        function showReceipt(items, total) {
+            const modal = document.getElementById('receipt-modal');
+            const receiptItems = document.getElementById('receipt-items');
+            const now = new Date();
+            
+            document.getElementById('receipt-date').textContent = now.toLocaleString('en-PH', {
+                dateStyle: 'full',
+                timeStyle: 'short'
+            });
+            document.getElementById('receipt-total').textContent = `₱${total.toFixed(2)}`;
+            
+            receiptItems.innerHTML = items.map(item => `
+                <div class="receipt-item">
+                    <div>
+                        <div class="receipt-item-name">${item.name}</div>
+                        <div class="receipt-item-details">${item.quantity} × ₱${item.price.toFixed(2)}</div>
+                    </div>
+                    <div><strong>₱${item.subtotal.toFixed(2)}</strong></div>
+                </div>
+            `).join('');
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeReceipt() {
+            document.getElementById('receipt-modal').style.display = 'none';
+        }
+        
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
+                
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                } else {
+                    document.getElementById('user-email').textContent = data.email;
+                    loadProducts();
+                }
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+        
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/login';
+        }
+        
+        checkAuth();
+    </script>
+</body>
+</html>

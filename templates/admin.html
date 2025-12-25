@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Store Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 24px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .btn-store {
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-logout {
+            padding: 8px 20px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .btn-logout:first-of-type {
+            background: #667eea;
+        }
+        
+        .btn-logout:first-of-type:hover {
+            background: #5568d3;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        
+        .add-product-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-input {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn-add {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn-add:hover {
+            opacity: 0.9;
+        }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .products-table th,
+        .products-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .products-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .btn-delete {
+            padding: 6px 15px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .btn-delete:hover {
+            background: #ee5a6f;
+        }
+        
+        .receipts-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .receipts-table th,
+        .receipts-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .receipts-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .btn-view {
+            padding: 6px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .btn-view:hover {
+            background: #5568d3;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .receipt-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+            padding-top: 15px;
+            margin-top: 15px;
+            border-top: 2px solid #333;
+        }
+        
+        .btn-close {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            margin-top: 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .add-product-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .products-table,
+            .receipts-table {
+                font-size: 14px;
+            }
+            
+            .products-table th,
+            .products-table td,
+            .receipts-table th,
+            .receipts-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛠️ Admin Dashboard</h1>
+        <div class="header-right">
+            <button class="btn-logout" onclick="showPasswordModal()">Change Password</button>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Manage Products</h2>
+            <form class="add-product-form" onsubmit="addProduct(event)">
+                <input type="text" id="product-name" class="form-input" placeholder="Product Name" required>
+                <input type="number" id="product-price" class="form-input" placeholder="Price" step="0.01" min="0" required>
+                <button type="submit" class="btn-add">Add Product</button>
+            </form>
+            
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Price</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="products-tbody"></tbody>
+            </table>
+        </div>
+        
+        <div class="card">
+            <h2>All Receipts</h2>
+            <table class="receipts-table">
+                <thead>
+                    <tr>
+                        <th>Receipt ID</th>
+                        <th>Customer</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="receipts-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="modal" id="receipt-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Receipt Details</h3>
+                <p id="receipt-info"></p>
+            </div>
+            <div id="receipt-items"></div>
+            <div class="receipt-total">
+                <span>Total:</span>
+                <span id="receipt-total"></span>
+            </div>
+            <button class="btn-close" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="password-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Change Admin Password</h3>
+                <p>Update your admin panel password</p>
+            </div>
+            <div id="password-error" style="display: none; background: #fee; color: #c33; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;"></div>
+            <div id="password-success" style="display: none; background: #efe; color: #3c3; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;"></div>
+            <form id="password-form" onsubmit="changePassword(event)">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Current Password</label>
+                    <input type="password" id="current-password" required class="form-input" placeholder="Enter current password" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">New Password</label>
+                    <input type="password" id="new-password" required minlength="6" class="form-input" placeholder="Enter new password" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Confirm New Password</label>
+                    <input type="password" id="confirm-password" required minlength="6" class="form-input" placeholder="Confirm new password" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                <button type="submit" class="btn-add" style="width: 100%; margin-bottom: 10px;">Update Password</button>
+                <button type="button" class="btn-close" onclick="closePasswordModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let products = [];
+        let receipts = [];
+        
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/products');
+                products = await response.json();
+                renderProducts();
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        function renderProducts() {
+            const tbody = document.getElementById('products-tbody');
+            tbody.innerHTML = products.map(product => `
+                <tr>
+                    <td>${product.name}</td>
+                    <td>₱${product.price.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteProduct(${product.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function addProduct(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('product-name').value;
+            const price = document.getElementById('product-price').value;
+            
+            try {
+                const response = await fetch('/api/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, price: parseFloat(price) })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('product-name').value = '';
+                    document.getElementById('product-price').value = '';
+                    loadProducts();
+                }
+            } catch (error) {
+                console.error('Error adding product:', error);
+            }
+        }
+        
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/products/${productId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadProducts();
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error);
+            }
+        }
+        
+        async function loadReceipts() {
+            try {
+                const response = await fetch('/api/receipts');
+                receipts = await response.json();
+                renderReceipts();
+            } catch (error) {
+                console.error('Error loading receipts:', error);
+            }
+        }
+        
+        function renderReceipts() {
+            const tbody = document.getElementById('receipts-tbody');
+            
+            if (receipts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No receipts yet</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = receipts.map(receipt => `
+                <tr>
+                    <td>#${receipt.id}</td>
+                    <td>${receipt.user_email || 'N/A'}</td>
+                    <td>₱${receipt.total.toFixed(2)}</td>
+                    <td>${new Date(receipt.created_at).toLocaleString()}</td>
+                    <td>
+                        <button class="btn-view" onclick="viewReceipt(${receipt.id})">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function viewReceipt(receiptId) {
+            const receipt = receipts.find(r => r.id === receiptId);
+            if (!receipt) return;
+            
+            const modal = document.getElementById('receipt-modal');
+            const receiptInfo = document.getElementById('receipt-info');
+            const receiptItems = document.getElementById('receipt-items');
+            const receiptTotal = document.getElementById('receipt-total');
+            
+            receiptInfo.innerHTML = `
+                <strong>Receipt #${receipt.id}</strong><br>
+                Customer: ${receipt.user_email || 'N/A'}<br>
+                Date: ${new Date(receipt.created_at).toLocaleString()}
+            `;
+            
+            receiptItems.innerHTML = receipt.items.map(item => `
+                <div class="receipt-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        <small>${item.quantity} x ₱${item.price.toFixed(2)}</small>
+                    </div>
+                    <div>₱${item.subtotal.toFixed(2)}</div>
+                </div>
+            `).join('');
+            
+            receiptTotal.textContent = `₱${receipt.total.toFixed(2)}`;
+            modal.style.display = 'flex';
+        }
+        
+        function closeModal() {
+            document.getElementById('receipt-modal').style.display = 'none';
+        }
+        
+        function showPasswordModal() {
+            document.getElementById('password-modal').style.display = 'flex';
+            document.getElementById('password-error').style.display = 'none';
+            document.getElementById('password-success').style.display = 'none';
+            document.getElementById('password-form').reset();
+        }
+        
+        function closePasswordModal() {
+            document.getElementById('password-modal').style.display = 'none';
+        }
+        
+        async function changePassword(event) {
+            event.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            const errorDiv = document.getElementById('password-error');
+            const successDiv = document.getElementById('password-success');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'New passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    successDiv.textContent = 'Password updated successfully!';
+                    successDiv.style.display = 'block';
+                    document.getElementById('password-form').reset();
+                    setTimeout(() => {
+                        closePasswordModal();
+                    }, 2000);
+                } else {
+                    errorDiv.textContent = data.error || 'Failed to update password';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+        
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/admin/check-auth');
+                const data = await response.json();
+                
+                if (!data.authenticated) {
+                    window.location.href = '/admin';
+                } else {
+                    loadProducts();
+                    loadReceipts();
+                }
+            } catch (error) {
+                window.location.href = '/admin';
+            }
+        }
+        
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = '/admin';
+        }
+        
+        checkAuth();
+    </script>
+</body>
+</html>
