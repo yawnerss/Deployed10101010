@@ -89,6 +89,37 @@
             font-size: 20px;
         }
         
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
         .add-product-form {
             display: grid;
             grid-template-columns: 2fr 1fr auto;
@@ -108,6 +139,42 @@
             border-color: #667eea;
         }
         
+        .form-textarea {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 200px;
+            width: 100%;
+        }
+        
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .bulk-info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .bulk-info strong {
+            color: #667eea;
+        }
+        
+        .bulk-info code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
         .btn-add {
             padding: 12px 30px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -120,6 +187,25 @@
         
         .btn-add:hover {
             opacity: 0.9;
+        }
+        
+        .bulk-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .bulk-result.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+        
+        .bulk-result.error {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
         }
         
         .products-table {
@@ -278,11 +364,39 @@
     <div class="container">
         <div class="card">
             <h2>Manage Products</h2>
-            <form class="add-product-form" onsubmit="addProduct(event)">
-                <input type="text" id="product-name" class="form-input" placeholder="Product Name" required>
-                <input type="number" id="product-price" class="form-input" placeholder="Price" step="0.01" min="0" required>
-                <button type="submit" class="btn-add">Add Product</button>
-            </form>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('single')">Single Product</button>
+                <button class="tab" onclick="switchTab('bulk')">Bulk Upload</button>
+            </div>
+            
+            <div id="single-tab" class="tab-content active">
+                <form class="add-product-form" onsubmit="addProduct(event)">
+                    <input type="text" id="product-name" class="form-input" placeholder="Product Name" required>
+                    <input type="number" id="product-price" class="form-input" placeholder="Price" step="0.01" min="0" required>
+                    <button type="submit" class="btn-add">Add Product</button>
+                </form>
+            </div>
+            
+            <div id="bulk-tab" class="tab-content">
+                <div class="bulk-info">
+                    <strong>📝 Format Instructions:</strong><br>
+                    Enter one product per line in any of these formats:<br>
+                    • <code>Product Name == Price</code><br>
+                    • <code>Product Name = Price</code><br>
+                    • <code>Product Name 72</code><br><br>
+                    <strong>Example:</strong><br>
+                    <code>gin bilog == 72</code><br>
+                    <code>red horse = 45</code><br>
+                    <code>emperador 50</code>
+                </div>
+                
+                <form onsubmit="bulkUploadProducts(event)">
+                    <textarea id="bulk-text" class="form-textarea" placeholder="Enter products here...&#10;gin bilog == 72&#10;red horse = 45&#10;emperador 50&#10;tanduay 35&#10;marlboro red 150"></textarea>
+                    <div id="bulk-result" class="bulk-result"></div>
+                    <button type="submit" class="btn-add" style="width: 100%; margin-top: 15px;">Upload Products</button>
+                </form>
+            </div>
             
             <table class="products-table">
                 <thead>
@@ -359,6 +473,20 @@
         let products = [];
         let receipts = [];
         
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
         async function loadProducts() {
             try {
                 const response = await fetch('/api/products');
@@ -404,6 +532,58 @@
                 }
             } catch (error) {
                 console.error('Error adding product:', error);
+            }
+        }
+        
+        async function bulkUploadProducts(event) {
+            event.preventDefault();
+            
+            const text = document.getElementById('bulk-text').value;
+            const resultDiv = document.getElementById('bulk-result');
+            
+            if (!text.trim()) {
+                resultDiv.className = 'bulk-result error';
+                resultDiv.textContent = 'Please enter some products';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/products/bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'bulk-result success';
+                    let message = `✅ Successfully added ${data.added.length} products!`;
+                    
+                    if (data.errors.length > 0) {
+                        message += `\n\n⚠️ ${data.errors.length} errors:\n`;
+                        message += data.errors.slice(0, 5).join('\n');
+                        if (data.errors.length > 5) {
+                            message += `\n... and ${data.errors.length - 5} more`;
+                        }
+                    }
+                    
+                    resultDiv.textContent = message;
+                    resultDiv.style.whiteSpace = 'pre-wrap';
+                    
+                    // Clear textarea and reload products
+                    document.getElementById('bulk-text').value = '';
+                    loadProducts();
+                } else {
+                    resultDiv.className = 'bulk-result error';
+                    resultDiv.textContent = `❌ Error: ${data.error || 'Failed to upload products'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'bulk-result error';
+                resultDiv.textContent = '❌ Network error. Please try again.';
+                console.error('Error bulk uploading:', error);
             }
         }
         
