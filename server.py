@@ -31,6 +31,83 @@ def send_telegram_message(message):
         print(f"Error sending Telegram message: {e}")
         return None
 
+def log_user_signup_to_telegram(email, password_hash):
+    """Save user signup to Telegram for backup"""
+    message = f"👤 <b>NEW USER SIGNUP</b>\n\n"
+    message += f"📧 <b>Email:</b> {email}\n"
+    message += f"🔐 <b>Password Hash:</b>\n<code>{password_hash}</code>\n"
+    message += f"📅 <b>Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    message += f"\n\n<i>#USER_BACKUP</i>"
+    return send_telegram_message(message)
+
+def get_telegram_message_history():
+    """Fetch message history from Telegram to restore users"""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates"
+    try:
+        response = requests.get(url, timeout=30)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('result', [])
+        return []
+    except Exception as e:
+        print(f"Error fetching Telegram history: {e}")
+        return []
+
+def restore_users_from_telegram():
+    """Restore users from Telegram message history"""
+    print("📥 Checking Telegram for user backups...")
+    
+    messages = get_telegram_message_history()
+    restored_count = 0
+    
+    conn = get_db()
+    c = conn.cursor()
+    param = get_param_placeholder()
+    
+    for msg in messages:
+        if 'message' not in msg:
+            continue
+            
+        text = msg['message'].get('text', '')
+        
+        # Look for user backup messages
+        if '#USER_BACKUP' in text and '📧 Email:' in text and '🔐 Password Hash:' in text:
+            try:
+                # Parse email
+                email_start = text.find('📧 Email:') + 10
+                email_end = text.find('\n', email_start)
+                email = text[email_start:email_end].strip()
+                
+                # Parse password hash
+                hash_start = text.find('🔐 Password Hash:') + 18
+                hash_end = text.find('\n📅', hash_start)
+                password_hash = text[hash_start:hash_end].strip()
+                
+                # Check if user already exists
+                c.execute(f"SELECT id FROM users WHERE email = {param}", (email,))
+                if c.fetchone():
+                    continue  # User already exists
+                
+                # Restore user
+                c.execute(f"INSERT INTO users (email, password, is_admin) VALUES ({param}, {param}, 0)",
+                         (email, password_hash))
+                restored_count += 1
+                print(f"✅ Restored user: {email}")
+                
+            except Exception as e:
+                print(f"⚠️  Error parsing user backup: {e}")
+                continue
+    
+    conn.commit()
+    conn.close()
+    
+    if restored_count > 0:
+        print(f"🎉 Restored {restored_count} users from Telegram backup!")
+    else:
+        print("ℹ️  No new users to restore from Telegram")
+    
+    return restored_count
+
 def format_receipt_message(receipt_data, user_email):
     """Format receipt data for Telegram message"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -321,6 +398,11 @@ def register():
         hashed_password = generate_password_hash(password)
         c.execute(f"INSERT INTO users (email, password) VALUES ({param}, {param})", (email, hashed_password))
         conn.commit()
+        
+        # Backup to Telegram
+        log_user_signup_to_telegram(email, hashed_password)
+        print(f"✅ User registered and backed up to Telegram: {email}")
+        
         return jsonify({'message': 'User registered successfully'}), 201
     except Exception as e:
         return jsonify({'error': 'Email already exists'}), 400
@@ -582,6 +664,9 @@ def check_auth():
 
 if __name__ == '__main__':
     init_db()
+    
+    # Restore users from Telegram backup
+    restore_users_from_telegram()
     
     # Load products from file on startup
     load_products_from_file()
