@@ -4,10 +4,43 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime
 import json
+import requests
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
 CORS(app)
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN = "7895976352:AAHhQgEgWdTGibFuR6D_jWy2pPwpbiy2rT8"
+TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '7383039587')  # You need to set this
+
+def send_telegram_message(message):
+    """Send message to Telegram bot"""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+    try:
+        response = requests.post(url, json=payload)
+        return response.json()
+    except Exception as e:
+        print(f"Error sending Telegram message: {e}")
+        return None
+
+def format_receipt_message(receipt_data, user_email):
+    """Format receipt data for Telegram message"""
+    message = "🧾 <b>NEW RECEIPT</b>\n\n"
+    message += f"👤 <b>User:</b> {user_email}\n"
+    message += f"📅 <b>Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    message += "<b>📦 Items:</b>\n"
+    
+    for item in receipt_data['items']:
+        message += f"  • {item['name']} - ${item['price']:.2f}\n"
+    
+    message += f"\n💰 <b>Total:</b> ${receipt_data['total']:.2f}"
+    return message
 
 # Database setup - PostgreSQL for production, SQLite for local
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -40,15 +73,6 @@ if DATABASE_URL:
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             price REAL NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )''')
-        
-        # Receipts table
-        c.execute('''CREATE TABLE IF NOT EXISTS receipts (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER REFERENCES users(id),
-            total REAL NOT NULL,
-            items TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )''')
         
@@ -114,16 +138,6 @@ else:
             name TEXT NOT NULL,
             price REAL NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )''')
-        
-        # Receipts table
-        c.execute('''CREATE TABLE IF NOT EXISTS receipts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            total REAL NOT NULL,
-            items TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
         )''')
         
         # Admin credentials table
@@ -292,12 +306,8 @@ def change_admin_password():
     
     # Update password
     new_hashed = generate_password_hash(new_password)
-    if DATABASE_URL:
-        c.execute(f"UPDATE admin_credentials SET password = {param}, updated_at = CURRENT_TIMESTAMP WHERE username = {param}",
-                  (new_hashed, username))
-    else:
-        c.execute(f"UPDATE admin_credentials SET password = {param}, updated_at = CURRENT_TIMESTAMP WHERE username = {param}",
-                  (new_hashed, username))
+    c.execute(f"UPDATE admin_credentials SET password = {param}, updated_at = CURRENT_TIMESTAMP WHERE username = {param}",
+              (new_hashed, username))
     
     conn.commit()
     conn.close()
@@ -369,49 +379,24 @@ def create_receipt():
     items = data.get('items', [])
     total = data.get('total', 0)
     
-    conn = get_db()
-    c = conn.cursor()
-    param = get_param_placeholder()
+    # Format and send receipt to Telegram
+    receipt_data = {
+        'items': items,
+        'total': total
+    }
     
-    if DATABASE_URL:
-        c.execute(f"INSERT INTO receipts (user_id, total, items) VALUES ({param}, {param}, {param}) RETURNING id",
-                  (session['user_id'], total, json.dumps(items)))
-        receipt_id = c.fetchone()[0]
+    user_email = session.get('email', 'Unknown')
+    message = format_receipt_message(receipt_data, user_email)
+    
+    telegram_response = send_telegram_message(message)
+    
+    if telegram_response and telegram_response.get('ok'):
+        return jsonify({
+            'message': 'Receipt sent to Telegram successfully',
+            'telegram_message_id': telegram_response.get('result', {}).get('message_id')
+        }), 201
     else:
-        c.execute(f"INSERT INTO receipts (user_id, total, items) VALUES ({param}, {param}, {param})",
-                  (session['user_id'], total, json.dumps(items)))
-        receipt_id = c.lastrowid
-    
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'receipt_id': receipt_id, 'message': 'Receipt created'}), 201
-
-@app.route('/api/receipts', methods=['GET'])
-def get_receipts():
-    if 'admin_authenticated' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    conn = get_db()
-    c = conn.cursor()
-    
-    c.execute("""SELECT r.id, r.total, r.items, r.created_at, u.email 
-                 FROM receipts r JOIN users u ON r.user_id = u.id 
-                 ORDER BY r.created_at DESC""")
-    
-    receipts = []
-    for row in c.fetchall():
-        receipt = {
-            'id': row[0],
-            'total': row[1],
-            'items': json.loads(row[2]),
-            'created_at': str(row[3]),
-            'user_email': row[4]
-        }
-        receipts.append(receipt)
-    
-    conn.close()
-    return jsonify(receipts)
+        return jsonify({'error': 'Failed to send receipt to Telegram'}), 500
 
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
